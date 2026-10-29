@@ -1,0 +1,22 @@
+---
+- name: Install Logstash (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: logstash
+    state: present
+    update_cache: yes
+    lock_timeout: 180
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Logstash (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: logstash
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Start and enable Logstash service
+  ansible.builtin.systemd:
+    name: logstash
+    state: started
+    enabled: yes

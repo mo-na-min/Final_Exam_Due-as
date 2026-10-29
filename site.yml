@@ -1,0 +1,35 @@
+---
+- name: Deploy Enterprise Service and Elastic Monitoring Stack Across All Servers
+  hosts: all_servers
+  become: true
+  vars_files:
+    - config.yaml
+
+  roles:
+    - role: enterprise_service
+    - role: elasticsearch
+    - role: logstash
+    - role: kibana
+
+- name: MOTD all servers
+  hosts: all_servers
+  become: true
+  tasks:
+    - name: set MOTD
+      ansible.builtin.copy:
+        content: "Ansible Managed by {{ ansible_user_id }}\n"
+        dest: /etc/motd/
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: stop conflict
+  hosts: all_servers
+  become: true
+  tasks:
+    - name: stop conflict
+      ansible.builtin.service:
+        name: "{{ 'apache2' if ansible_facts['os_family'] == 'Debian' else 'httpd' }}"
+        state: stopped
+        enable: false
+      ignore_errors: true

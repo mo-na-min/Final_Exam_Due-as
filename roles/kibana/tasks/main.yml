@@ -1,0 +1,34 @@
+---
+- name: Install Kibana (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: kibana
+    state: present
+    update_cache: yes
+    lock_timeout: 180
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Kibana (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: kibana
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Configure Kibana server host
+  ansible.builtin.lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: '^#?server.host:'
+    line: 'server.host: "0.0.0.0"'
+
+- name: Configure Kibana Elasticsearch URL
+  ansible.builtin.lineinfile:
+    path: /etc/kibana/kibana.yml
+    regexp: '^#?elasticsearch.hosts:'
+    line: 'elasticsearch.hosts: ["http://localhost:9200"]'
+
+- name: Start and enable Kibana service
+  ansible.builtin.systemd:
+    name: kibana
+    state: started
+    enabled: yes

@@ -1,0 +1,36 @@
+---
+# 1. Install NGINX
+- name: Install NGINX (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: "{{ enterprise_service_package }}"
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install NGINX (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: "{{ enterprise_service_package }}"
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+# 2. Configure Listening Port by OS Family
+- name: Configure NGINX Port (Debian/Ubuntu)
+  ansible.builtin.replace:
+    path: /etc/nginx/sites-available/default
+    regexp: 'listen\s+80;'
+    replace: "listen {{ enterprise_service_port }};"
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Configure NGINX Port (RedHat/CentOS)
+  ansible.builtin.replace:
+    path: /etc/nginx/nginx.conf
+    regexp: 'listen\s+80;'
+    replace: "listen {{ enterprise_service_port }};"
+  when: ansible_facts['os_family'] == "RedHat"
+
+# 3. Service Management
+- name: Ensure NGINX is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ enterprise_service_package }}"
+    state: restarted
+    enabled: yes

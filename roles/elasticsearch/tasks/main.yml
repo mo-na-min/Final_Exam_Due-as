@@ -1,0 +1,87 @@
+---
+# Debian
+- name: Clean APT cache
+  ansible.builtin.apt:
+    clean: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install prerequisites (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - apt-transport-https
+      - openjdk-11-jdk
+      - gpg
+      - curl
+    state: present
+    update_cache: yes
+    lock_timeout: 180
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Create Keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Elastic GPG key (Debian/Ubuntu)
+  ansible.builtin.get_url:
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    dest: /etc/apt/keyrings/elasticsearch.asc
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Add Elastic APT repository (Debian/Ubuntu)
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/elasticsearch.asc] https://artifacts.elastic.co/packages/8.x/apt stable main"
+    state: present
+    filename: elastic-8.x
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Elasticsearch (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: elasticsearch
+    state: present
+    update_cache: yes
+    lock_timeout: 180
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_facts['os_family'] == "Debian"
+
+# CentOS
+- name: Import Elastic GPG Key (RedHat/CentOS)
+  ansible.builtin.rpm_key:
+    state: present
+    key: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Add Elastic YUM Repository (RedHat/CentOS)
+  ansible.builtin.yum_repository:
+    name: elastic-8.x
+    description: Elastic repository for 8.x packages
+    baseurl: https://artifacts.elastic.co/packages/8.x/yum
+    gpgcheck: yes
+    gpgkey: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    enabled: yes
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install Elasticsearch (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: elasticsearch
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+# Configuration
+- name: Configure Elasticsearch network binding
+  ansible.builtin.lineinfile:
+    path: /etc/elasticsearch/elasticsearch.yml
+    regexp: '^#?network.host:'
+    line: 'network.host: 0.0.0.0'
+
+- name: Start and enable Elasticsearch service
+  ansible.builtin.systemd:
+    name: elasticsearch
+    state: started
+    enabled: yes
